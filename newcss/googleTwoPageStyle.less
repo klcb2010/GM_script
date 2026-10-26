@@ -49,9 +49,26 @@ div[two-child] {
 }
 
 #main #cnt, #cnt #center_col, #cnt #foot, .HdCKGe {
-  width: calc(54vw + 360px);
+  width: calc(100vw - 80px) !important;
+  max-width: 1600px !important;
+  min-width: 0 !important;
   margin: 0 auto;
   grid-column: unset;
+  box-sizing: border-box;
+}
+
+#main, #main #cnt, #main #rcnt, #cnt, #center_col, #rso {
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+#main #rcnt {
+  width: 100% !important;
+}
+
+#main #rcnt #center_col {
+  width: calc(100vw - 80px) !important;
+  max-width: 1600px !important;
 }
 
 body #appbar, body .rhscol, body #top_nav, body #fbar {
