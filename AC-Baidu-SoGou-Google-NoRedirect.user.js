@@ -2837,8 +2837,13 @@
           parent = parent.parentElement
         }
         if (parent && parent.hasAttribute('two-father') && item.parentElement === parent) {
+          // 双列父容器可能使用 Grid，也可能在翻页阶段仍处于多栏布局；两种方式都声明跨列。
           item.style.setProperty('grid-column', '1 / -1', 'important')
+          item.style.setProperty('column-span', 'all', 'important')
+          item.style.setProperty('width', '100%', 'important')
           item.style.setProperty('min-width', '0', 'important')
+          ai.style.setProperty('max-width', '100%', 'important')
+          ai.style.setProperty('box-sizing', 'border-box', 'important')
         }
       })
 
