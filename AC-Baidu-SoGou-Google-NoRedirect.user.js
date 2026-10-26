@@ -1192,6 +1192,25 @@
         }
         if (+this.curConfig.adsStyleMode >= 3) {
           this.adsCSSList.twoPageStyle = await this.loadStyleByName_WithLessCache(this.options.siteName + 'TwoPageStyle') // 双列效果
+          // Google 双列模式下固定主结果区宽度；此规则必须加在双列样式本身，
+          // 不能放进多列模式的 getMultiPageStyle()（双列模式不会加载那里）。
+          if (location.hostname.includes('google.')) {
+            this.adsCSSList.twoPageStyle += `
+              #center_col,#rcnt,#rso,#kp-wp-tab-overview {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+              }
+              #center_col,#rso {
+                flex: 1 1 100% !important;
+              }
+              #rso > div,#kp-wp-tab-overview {
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+              }
+            `
+          }
         }
         if (+this.curConfig.adsStyleMode >= 4) {
           this.adsCSSList.multiPageStyle = await this.getMultiPageStyle() // 多列效果
