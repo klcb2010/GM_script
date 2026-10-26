@@ -2805,21 +2805,6 @@
         CONST.curConfig.enableCSS = false
         return
       }
-      // 若 AI 概览位于双列网格内部，将它所在的直接子项跨越整行；
-      // 不隐藏 AI 概览，也不影响普通搜索结果的双列布局。
-      document.querySelectorAll('.j2luwe.pWvJNd').forEach(ai => {
-        let item = ai
-        let parent = ai.parentElement
-        while (parent && parent !== document.body && !parent.hasAttribute('two-father')) {
-          item = parent
-          parent = parent.parentElement
-        }
-        if (parent && parent.hasAttribute('two-father')) {
-          item.style.setProperty('grid-column', '1 / -1', 'important')
-          item.style.setProperty('min-width', '0', 'important')
-        }
-      })
-
       // 修复 Google 双列中偶发的异步空容器留白：
       // 仅处理双列父容器的直接子项，且子项只含尚未加载内容的空异步 #rso。
       // 每次轮询重新检查；异步结果加载后恢复，不删除 DOM、不影响 AI Overview。
@@ -2841,6 +2826,21 @@
       })
 
       findAndMarkP2Line()
+
+      // 必须在双列父子节点重新标记后处理 AI 概览；
+      // 翻页期间新结果可能刚被 findAndMarkP2Line 标记，提前设置跨列会被布局标记覆盖。
+      document.querySelectorAll('.j2luwe.pWvJNd').forEach(ai => {
+        let item = ai
+        let parent = ai.parentElement
+        while (parent && parent !== document.body && !parent.hasAttribute('two-father')) {
+          item = parent
+          parent = parent.parentElement
+        }
+        if (parent && parent.hasAttribute('two-father') && item.parentElement === parent) {
+          item.style.setProperty('grid-column', '1 / -1', 'important')
+          item.style.setProperty('min-width', '0', 'important')
+        }
+      })
 
     }, 150, 10000000)
     /***Baidu***/
