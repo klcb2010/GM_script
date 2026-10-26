@@ -1946,7 +1946,31 @@
           CONST.cssAutoInsert.add("twoPageStyle", CONST.adsCSSList.twoPageStyle)
           CONST.cssAutoInsert.add("multiPageStyle", CONST.adsCSSList.multiPageStyle)
         }
-      }
+      }        // Google 双列/多列模式：宽度规则内置于主脚本，不依赖远程 LESS 是否更新。
+        if (location.hostname.includes('google.') && +CONST.curConfig.adsStyleMode >= 3) {
+          CONST.cssAutoInsert.add("googleFixedWidth", `
+            #main #cnt, #cnt #center_col, #cnt #foot, .HdCKGe {
+              width: min(calc(100vw - 48px), 1600px) !important;
+              max-width: calc(100vw - 48px) !important;
+              min-width: 0 !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              box-sizing: border-box !important;
+            }
+            #main, #main #rcnt, #cnt, #center_col, #rso {
+              max-width: none !important;
+              box-sizing: border-box !important;
+            }
+            #main #rcnt { width: 100% !important; }
+            div[two-father], #kp-wp-tab-overview {
+              width: 100% !important;
+              min-width: 0 !important;
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              box-sizing: border-box !important;
+            }
+          `)
+        }
+
       CONST.cssAutoInsert.add("styleLogo", ".minidiv #logo img{width: 100px;height: unset;margin-top: 0.3rem;} body.purecss-mode:before{display: none;}")
       CONST.cssAutoInsert.add("specialBAIDU", ".opr-recommends-merge-imgtext{display:none!important;}.res_top_banner{display:none!important;}.headBlock, body>div.result-op{display:none;}")
       CONST.cssAutoInsert.add("animationStyle", `
