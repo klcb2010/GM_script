@@ -2827,24 +2827,39 @@
 
       findAndMarkP2Line()
 
-      // 必须在双列父子节点重新标记后处理 AI 概览；
-      // 翻页期间新结果可能刚被 findAndMarkP2Line 标记，提前设置跨列会被布局标记覆盖。
+      // Google AI 概览在翻页后可能被插入到不同层级，不能只依赖 two-father 标记。
+      // 从 AI 节点向上寻找真实的多列布局容器，将 AI 所在的直接子项跨满整行。
       document.querySelectorAll('.j2luwe.pWvJNd').forEach(ai => {
         let item = ai
         let parent = ai.parentElement
-        while (parent && parent !== document.body && !parent.hasAttribute('two-father')) {
+        let target = null
+        while (parent && parent !== document.body) {
+          const style = getComputedStyle(parent)
+          const isMarkedGrid = parent.hasAttribute('two-father')
+          const isMultiColumn = style.display.includes('grid') ||
+            (style.columnCount !== 'auto' && Number(style.columnCount) > 1)
+          if ((isMarkedGrid || isMultiColumn) && item.parentElement === parent) {
+            target = { item, parent }
+            if (isMarkedGrid || style.display.includes('grid')) break
+          }
           item = parent
           parent = parent.parentElement
         }
-        if (parent && parent.hasAttribute('two-father') && item.parentElement === parent) {
-          // 双列父容器可能使用 Grid，也可能在翻页阶段仍处于多栏布局；两种方式都声明跨列。
-          item.style.setProperty('grid-column', '1 / -1', 'important')
-          item.style.setProperty('column-span', 'all', 'important')
+        if (target) {
+          const { item, parent } = target
+          const style = getComputedStyle(parent)
+          if (style.display.includes('grid')) {
+            item.style.setProperty('grid-column', '1 / -1', 'important')
+          }
+          if (style.columnCount !== 'auto' && Number(style.columnCount) > 1) {
+            item.style.setProperty('column-span', 'all', 'important')
+          }
           item.style.setProperty('width', '100%', 'important')
           item.style.setProperty('min-width', '0', 'important')
-          ai.style.setProperty('max-width', '100%', 'important')
-          ai.style.setProperty('box-sizing', 'border-box', 'important')
         }
+        ai.style.setProperty('max-width', '100%', 'important')
+        ai.style.setProperty('width', '100%', 'important')
+        ai.style.setProperty('box-sizing', 'border-box', 'important')
       })
 
     }, 150, 10000000)
