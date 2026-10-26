@@ -1233,12 +1233,20 @@
     }
 
     getMultiPageStyle() {
-      return this.options.useItem.MultiPageType +
+      const style = this.options.useItem.MultiPageType +
         (+this.curConfig.adsStyleMode === 4 ?
-          "{grid-template-columns: repeat(3, 33.3%); grid-template-areas:'xmain xmain xmain';}" :
-          "{grid-template-columns: repeat(4, 25%); grid-template-areas:'xmain xmain xmain xmain';}")
-    }
+          "{grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas:'xmain xmain xmain';}" :
+          "{grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-areas:'xmain xmain xmain xmain';}")
 
+      // Google 结果区会因异步翻页和 AI 概览插入而被压窄，固定使用父容器的可用宽度。
+      if (location.hostname.includes('google.')) {
+        return style +
+          '#center_col,#rcnt,#rso,#kp-wp-tab-overview{width:100%!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important;}' +
+          '#center_col,#rso{flex:1 1 100%!important;}' +
+          '#rso>div,#kp-wp-tab-overview{min-width:0!important;box-sizing:border-box!important;}'
+      }
+      return style
+    }
     async getHuyanStyle() {
       function Lighter(oriRGB, deltaY) {
         function clip255(value) {
