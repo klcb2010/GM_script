@@ -2820,6 +2820,26 @@
         }
       })
 
+      // 修复 Google 双列中偶发的异步空容器留白：
+      // 仅处理双列父容器的直接子项，且子项只含尚未加载内容的空异步 #rso。
+      // 每次轮询重新检查；异步结果加载后恢复，不删除 DOM、不影响 AI Overview。
+      document.querySelectorAll('div[two-father]').forEach(father => {
+        [...father.children].forEach(item => {
+          const asyncResults = [...item.querySelectorAll('div#rso[data-async-context]')]
+          const isEmptyAsyncPlaceholder = asyncResults.length > 0 &&
+            !item.textContent.trim() &&
+            asyncResults.every(results => results.children.length === 0 && !results.textContent.trim())
+
+          if (isEmptyAsyncPlaceholder) {
+            item.setAttribute('data-ac-empty-async-rso', '1')
+            item.style.setProperty('display', 'none', 'important')
+          } else if (item.hasAttribute('data-ac-empty-async-rso')) {
+            item.removeAttribute('data-ac-empty-async-rso')
+            item.style.removeProperty('display')
+          }
+        })
+      })
+
       findAndMarkP2Line()
 
     }, 150, 10000000)
