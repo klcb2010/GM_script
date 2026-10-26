@@ -11,7 +11,7 @@
 // @license    GPL-3.0-only
 // @create     2015-11-25
 // @run-at     document-start
-// @version    27.22
+// @version    27.26
 // @connect    baidu.com
 // @connect    google.com
 // @connect    google.com.hk
@@ -51,7 +51,11 @@
 // @copyright  2015-2026, AC
 // @lastmodified  2026-06-18
 // @feedback-url  https://github.com/langren1353/GM_script
-// @note    2026.10-26-V27.22 修复谷歌 AI 概览干扰双列布局；
+// @note    2026.10-26-V27.26 增强 AI 概览动态插入/类名变化后的隐藏；
+// @note    2026.10-26-V27.25 参考百度宽度并兼容 Google 三列/四列；
+// @note    2026.10-26-V27.24 隐藏 Google AI 概览并扩展双列搜索结果宽度；
+// @note    2026.10-26-V27.23 修复 AI 概览挤压双列：兼容 CSS 多栏与 Grid；
+// @note    2026.10-26-V27.22 初步处理谷歌 AI 概览与双列布局冲突；
 // @note    2026.07-18-V27.21 修复谷歌的双列问题；
 // @note    2026.06-18-V27.20 修复百度错位的问题
 // @note    2026.01-06-V27.19 修复百度、谷歌、必应的一些bug，增加页面加载动画，优化页面资源占用，避免大量的资源占用
@@ -1192,25 +1196,6 @@
         }
         if (+this.curConfig.adsStyleMode >= 3) {
           this.adsCSSList.twoPageStyle = await this.loadStyleByName_WithLessCache(this.options.siteName + 'TwoPageStyle') // 双列效果
-          // Google 双列模式下固定主结果区宽度；此规则必须加在双列样式本身，
-          // 不能放进多列模式的 getMultiPageStyle()（双列模式不会加载那里）。
-          if (location.hostname.includes('google.')) {
-            this.adsCSSList.twoPageStyle += `
-              #center_col,#rcnt,#rso,#kp-wp-tab-overview {
-                width: 100% !important;
-                max-width: none !important;
-                min-width: 0 !important;
-                box-sizing: border-box !important;
-              }
-              #center_col,#rso {
-                flex: 1 1 100% !important;
-              }
-              #rso > div,#kp-wp-tab-overview {
-                min-width: 0 !important;
-                box-sizing: border-box !important;
-              }
-            `
-          }
         }
         if (+this.curConfig.adsStyleMode >= 4) {
           this.adsCSSList.multiPageStyle = await this.getMultiPageStyle() // 多列效果
@@ -1252,20 +1237,12 @@
     }
 
     getMultiPageStyle() {
-      const style = this.options.useItem.MultiPageType +
+      return this.options.useItem.MultiPageType +
         (+this.curConfig.adsStyleMode === 4 ?
-          "{grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas:'xmain xmain xmain';}" :
-          "{grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-areas:'xmain xmain xmain xmain';}")
-
-      // Google 结果区会因异步翻页和 AI 概览插入而被压窄，固定使用父容器的可用宽度。
-      if (location.hostname.includes('google.')) {
-        return style +
-          '#center_col,#rcnt,#rso,#kp-wp-tab-overview{width:100%!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important;}' +
-          '#center_col,#rso{flex:1 1 100%!important;}' +
-          '#rso>div,#kp-wp-tab-overview{min-width:0!important;box-sizing:border-box!important;}'
-      }
-      return style
+          "{grid-template-columns: repeat(3, 33.3%); grid-template-areas:'xmain xmain xmain';}" :
+          "{grid-template-columns: repeat(4, 25%); grid-template-areas:'xmain xmain xmain xmain';}")
     }
+
     async getHuyanStyle() {
       function Lighter(oriRGB, deltaY) {
         function clip255(value) {
@@ -1946,31 +1923,7 @@
           CONST.cssAutoInsert.add("twoPageStyle", CONST.adsCSSList.twoPageStyle)
           CONST.cssAutoInsert.add("multiPageStyle", CONST.adsCSSList.multiPageStyle)
         }
-      }        // Google 双列/多列模式：宽度规则内置于主脚本，不依赖远程 LESS 是否更新。
-        if (location.hostname.includes('google.') && +CONST.curConfig.adsStyleMode >= 3) {
-          CONST.cssAutoInsert.add("googleFixedWidth", `
-            #main #cnt, #cnt #center_col, #cnt #foot, .HdCKGe {
-              width: min(calc(100vw - 48px), 1600px) !important;
-              max-width: calc(100vw - 48px) !important;
-              min-width: 0 !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              box-sizing: border-box !important;
-            }
-            #main, #main #rcnt, #cnt, #center_col, #rso {
-              max-width: none !important;
-              box-sizing: border-box !important;
-            }
-            #main #rcnt { width: 100% !important; }
-            div[two-father], #kp-wp-tab-overview {
-              width: 100% !important;
-              min-width: 0 !important;
-              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-              box-sizing: border-box !important;
-            }
-          `)
-        }
-
+      }
       CONST.cssAutoInsert.add("styleLogo", ".minidiv #logo img{width: 100px;height: unset;margin-top: 0.3rem;} body.purecss-mode:before{display: none;}")
       CONST.cssAutoInsert.add("specialBAIDU", ".opr-recommends-merge-imgtext{display:none!important;}.res_top_banner{display:none!important;}.headBlock, body>div.result-op{display:none;}")
       CONST.cssAutoInsert.add("animationStyle", `
@@ -2856,62 +2809,64 @@
         CONST.curConfig.enableCSS = false
         return
       }
-      // 修复 Google 双列中偶发的异步空容器留白：
-      // 仅处理双列父容器的直接子项，且子项只含尚未加载内容的空异步 #rso。
-      // 每次轮询重新检查；异步结果加载后恢复，不删除 DOM、不影响 AI Overview。
-      document.querySelectorAll('div[two-father]').forEach(father => {
-        [...father.children].forEach(item => {
-          const asyncResults = [...item.querySelectorAll('div#rso[data-async-context]')]
-          const isEmptyAsyncPlaceholder = asyncResults.length > 0 &&
-            !item.textContent.trim() &&
-            asyncResults.every(results => results.children.length === 0 && !results.textContent.trim())
+      // Google 会异步插入或重新渲染 AI 概览，不能只依赖某一组会变化的 class。
+      const googleRcnt = document.querySelector('#rcnt')
+      const googleCenterCol = document.querySelector('#center_col')
 
-          if (isEmptyAsyncPlaceholder) {
-            item.setAttribute('data-ac-empty-async-rso', '1')
-            item.style.setProperty('display', 'none', 'important')
-          } else if (item.hasAttribute('data-ac-empty-async-rso')) {
-            item.removeAttribute('data-ac-empty-async-rso')
-            item.style.removeProperty('display')
+      // 第一层：优先使用已确认过的结构选择器。
+      const googleAI = document.querySelector(
+        '.j2luwe.pWvJNd, #m-x-content, [data-attrid="AIOverview"]'
+      )
+      if (googleAI) {
+        const aiModule = googleAI.closest('.SLPe5b.M8OgIe, .FkX2oe') || googleAI
+        aiModule.style.setProperty('display', 'none', 'important')
+      }
+
+      // 第二层：Google 更换 class 后，用标题文本识别 AI 概览，并只隐藏 #rcnt 下的独立模块。
+      // 限定在 #rcnt 内，且禁止把 #center_col / #rso 等搜索结果主容器误隐藏。
+      if (googleRcnt) {
+        const headings = googleRcnt.querySelectorAll('h1, h2, [role="heading"], span')
+        for (const heading of headings) {
+          const label = (heading.innerText || heading.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
+          if (!/(ai overview|ai 概览|ai 摘要|人工智能概览)/i.test(label)) continue
+
+          let module = heading
+          while (module.parentElement && module.parentElement !== googleRcnt) {
+            module = module.parentElement
           }
-        })
-      })
+          if (module !== googleRcnt && module !== googleCenterCol &&
+              module.id !== 'center_col' && module.id !== 'rso' &&
+              !(googleCenterCol && module.contains(googleCenterCol))) {
+            module.style.setProperty('display', 'none', 'important')
+          }
+        }
+      }
+
+      if (googleRcnt && googleCenterCol) {
+        // 参考百度主内容区宽度；窄屏下自动收缩。
+        googleRcnt.style.setProperty('width', 'min(1544px, calc(100vw - 336px))', 'important')
+        googleRcnt.style.setProperty('max-width', 'calc(100vw - 32px)', 'important')
+        googleRcnt.style.setProperty('grid-template-columns', 'minmax(0, 1fr)', 'important')
+        googleRcnt.style.setProperty('margin-inline', 'auto', 'important')
+        googleCenterCol.style.setProperty('grid-column', '1 / -1', 'important')
+        googleCenterCol.style.setProperty('width', '100%', 'important')
+        googleCenterCol.style.setProperty('max-width', '1544px', 'important')
+        googleCenterCol.style.setProperty('min-width', '0', 'important')
+        googleCenterCol.style.setProperty('justify-self', 'stretch', 'important')
+
+        const googleRso = googleCenterCol.querySelector('#rso')
+        if (googleRso) {
+          const mode = Number(CONST.curConfig.adsStyleMode || 3)
+          const columns = mode >= 5 ? 4 : mode >= 4 ? 3 : 2
+          googleRso.style.setProperty('width', '100%', 'important')
+          googleRso.style.setProperty('max-width', '100%', 'important')
+          googleRso.style.setProperty('grid-template-columns', 'repeat(' + columns + ', minmax(0, 1fr))', 'important')
+          googleRso.style.setProperty('column-gap', '24px', 'important')
+          googleRso.style.setProperty('box-sizing', 'border-box', 'important')
+        }
+      }
 
       findAndMarkP2Line()
-
-      // Google AI 概览在翻页后可能被插入到不同层级，不能只依赖 two-father 标记。
-      // 从 AI 节点向上寻找真实的多列布局容器，将 AI 所在的直接子项跨满整行。
-      document.querySelectorAll('.j2luwe.pWvJNd').forEach(ai => {
-        let item = ai
-        let parent = ai.parentElement
-        let target = null
-        while (parent && parent !== document.body) {
-          const style = getComputedStyle(parent)
-          const isMarkedGrid = parent.hasAttribute('two-father')
-          const isMultiColumn = style.display.includes('grid') ||
-            (style.columnCount !== 'auto' && Number(style.columnCount) > 1)
-          if ((isMarkedGrid || isMultiColumn) && item.parentElement === parent) {
-            target = { item, parent }
-            if (isMarkedGrid || style.display.includes('grid')) break
-          }
-          item = parent
-          parent = parent.parentElement
-        }
-        if (target) {
-          const { item, parent } = target
-          const style = getComputedStyle(parent)
-          if (style.display.includes('grid')) {
-            item.style.setProperty('grid-column', '1 / -1', 'important')
-          }
-          if (style.columnCount !== 'auto' && Number(style.columnCount) > 1) {
-            item.style.setProperty('column-span', 'all', 'important')
-          }
-          item.style.setProperty('width', '100%', 'important')
-          item.style.setProperty('min-width', '0', 'important')
-        }
-        ai.style.setProperty('max-width', '100%', 'important')
-        ai.style.setProperty('width', '100%', 'important')
-        ai.style.setProperty('box-sizing', 'border-box', 'important')
-      })
 
     }, 150, 10000000)
     /***Baidu***/
